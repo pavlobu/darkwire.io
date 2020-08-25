@@ -7,7 +7,7 @@ const receiveUserEnter = (payload, dispatch) => {
 const receiveToggleLockRoom = (payload, dispatch, getState) => {
   const state = getState();
 
-  const lockedByUser = state.room.members.find(m => m.publicKey.n === payload.publicKey.n);
+  const lockedByUser = state.room.members.find(m => m.publicKey === payload.publicKey);
   const lockedByUsername = lockedByUser.username;
   const lockedByUserId = lockedByUser.id;
 
@@ -23,8 +23,8 @@ const receiveToggleLockRoom = (payload, dispatch, getState) => {
 
 const receiveUserExit = (payload, dispatch, getState) => {
   const state = getState();
-  const payloadPublicKeys = payload.map(member => member.publicKey.n);
-  const exitingUser = state.room.members.find(m => !payloadPublicKeys.includes(m.publicKey.n));
+  const payloadPublicKeys = payload.map(member => member.publicKey);
+  const exitingUser = state.room.members.find(m => !payloadPublicKeys.includes(m.publicKey));
 
   if (!exitingUser) {
     return;

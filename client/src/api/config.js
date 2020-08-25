@@ -20,6 +20,12 @@ switch (process.env.NODE_ENV) {
     port = process.env.REACT_APP_API_PORT || 3001;
 }
 
+if (!host && !protocol && !port) {
+  host = window.location.host.split(':')[0];
+  protocol = 'http';
+  port = 3001;
+}
+
 export default {
   host,
   port,

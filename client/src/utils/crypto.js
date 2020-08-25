@@ -1,10 +1,6 @@
 export default class Crypto {
   constructor() {
-    this._crypto = window.crypto || false;
-
-    if (!this._crypto || (!this._crypto.subtle && !this._crypto.webkitSubtle)) {
-      return false;
-    }
+    this._crypto = window.forge;
   }
 
   get crypto() {
@@ -30,135 +26,96 @@ export default class Crypto {
   }
 
   createEncryptDecryptKeys() {
-    return this.crypto.subtle.generateKey(
-      {
-        name: 'RSA-OAEP',
-        modulusLength: 2048, // can be 1024, 2048, or 4096
-        publicExponent: new Uint8Array([0x01, 0x00, 0x01]),
-        hash: { name: 'SHA-1' },
-      },
-      true, // whether the key is extractable (i.e. can be used in exportKey)
-      ['encrypt', 'decrypt', 'wrapKey', 'unwrapKey'], // must be ['encrypt', 'decrypt'] or ['wrapKey', 'unwrapKey']
-    );
-  }
-
-  createSecretKey() {
-    return this.crypto.subtle.generateKey(
-      {
-        name: 'AES-CBC',
-        length: 256, // can be  128, 192, or 256
-      },
-      true, // whether the key is extractable (i.e. can be used in exportKey)
-      ['encrypt', 'decrypt'], // can be 'encrypt', 'decrypt', 'wrapKey', or 'unwrapKey'
-    );
-  }
-
-  createSigningKey() {
-    return this.crypto.subtle.generateKey(
-      {
-        name: 'HMAC',
-        hash: { name: 'SHA-256' },
-      },
-      true, // whether the key is extractable (i.e. can be used in exportKey)
-      ['sign', 'verify'], // can be 'encrypt', 'decrypt', 'wrapKey', or 'unwrapKey'
-    );
-  }
-
-  encryptMessage(data, secretKey, iv) {
-    return this.crypto.subtle.encrypt(
-      {
-        name: 'AES-CBC',
-        // Don't re-use initialization vectors!
-        // Always generate a new iv every time your encrypt!
-        iv,
-      },
-      secretKey, // from generateKey or importKey above
-      data, // ArrayBuffer of data you want to encrypt
-    );
-  }
-
-  decryptMessage(data, secretKey, iv) {
-    return this.crypto.subtle.decrypt(
-      {
-        name: 'AES-CBC',
-        iv, // The initialization vector you used to encrypt
-      },
-      secretKey, // from generateKey or importKey above
-      data, // ArrayBuffer of the data
-    );
-  }
-
-  importEncryptDecryptKey(jwkData, format = 'jwk', ops) {
-    const hashObj = {
-      name: 'RSA-OAEP',
-      hash: { name: 'SHA-1' },
-    };
-
-    return this.crypto.subtle.importKey(
-      format, // can be 'jwk' (public or private), 'spki' (public only), or 'pkcs8' (private only)
-      jwkData,
-      hashObj,
-      true, // whether the key is extractable (i.e. can be used in exportKey)
-      ops || ['encrypt', 'wrapKey'], // 'encrypt' or 'wrapKey' for public key import or
-      // 'decrypt' or 'unwrapKey' for private key imports
-    );
-  }
-
-  exportKey(key, format) {
-    return this.crypto.subtle.exportKey(
-      format || 'jwk', // can be 'jwk' (public or private), 'spki' (public only), or 'pkcs8' (private only)
-      key, // can be a publicKey or privateKey, as long as extractable was true
-    );
-  }
-
-  signMessage(data, keyToSignWith) {
-    return this.crypto.subtle.sign(
-      {
-        name: 'HMAC',
-        hash: { name: 'SHA-256' },
-      },
-      keyToSignWith, // from generateKey or importKey above
-      data, // ArrayBuffer of data you want to sign
-    );
-  }
-
-  verifyPayload(signature, data, keyToVerifyWith) {
-    // Will verify with sender's public key
-    return this.crypto.subtle.verify(
-      {
-        name: 'HMAC',
-        hash: { name: 'SHA-256' },
-      },
-      keyToVerifyWith, // from generateKey or importKey above
-      signature, // ArrayBuffer of the signature
-      data, // ArrayBuffer of the data
-    );
-  }
-
-  wrapKey(keyToWrap, keyToWrapWith, format = 'jwk') {
-    return this.crypto.subtle.wrapKey(format, keyToWrap, keyToWrapWith, {
-      name: 'RSA-OAEP',
-      hash: { name: 'SHA-1' },
+    return new Promise(resolve => {
+      const keypair = this.crypto.pki.rsa.generateKeyPair({ bits: 2048, e: 0x10001 });
+      resolve(keypair);
     });
   }
 
-  unwrapKey(
-    format = 'jwk',
-    wrappedKey,
-    unwrappingKey,
-    unwrapAlgo,
-    unwrappedKeyAlgo, // AES-CBC for session, HMAC for signing
-    extractable = true,
-    keyUsages, // verify for signing // decrypt for session
-  ) {
-    return this.crypto.subtle.unwrapKey(
-      format,
-      wrappedKey,
-      unwrappingKey,
-      unwrapAlgo,
-      unwrappedKeyAlgo,
-      extractable,
-      keyUsages,
-    );
+  encryptMessage(data, secretKey, iv) {
+    return new Promise(resolve => {
+      const input = window.forge.util.createBuffer(data, 'utf8');
+      const cipherAES = window.forge.cipher.createCipher('AES-CBC', secretKey);
+      cipherAES.start({ iv: iv });
+      cipherAES.update(input);
+      cipherAES.finish();
+      const cyphertext = cipherAES.output.getBytes();
+      resolve(cyphertext);
+    });
+  }
+
+  decryptMessage(data, secretKey, iv) {
+    return new Promise(resolve => {
+      const input = window.forge.util.createBuffer(data);
+      const decipher = window.forge.cipher.createDecipher('AES-CBC', secretKey);
+      decipher.start({ iv: iv });
+      decipher.update(input); // input should be a strng here
+      decipher.finish();
+      const decryptedPayload = decipher.output.toString('utf8');
+      resolve(decryptedPayload);
+    });
+  }
+
+  importEncryptDecryptKey(keyPemString) {
+    return new Promise(resolve => {
+      if (this._isPublicKeyString(keyPemString)) {
+        const publicKeyPem = this.crypto.pki.publicKeyFromPem(keyPemString);
+        resolve(publicKeyPem);
+      } else {
+        const privateKeyPem = this.crypto.pki.privateKeyFromPem(keyPemString);
+        resolve(privateKeyPem);
+      }
+    });
+  }
+
+  exportKey(key) {
+    return new Promise(resolve => {
+      if (this._isPublicKeyObject(key)) {
+        const publicKeyPem = this.crypto.pki.publicKeyToPem(key).toString();
+        resolve(publicKeyPem);
+      } else {
+        const privateKeyPem = this.crypto.pki.privateKeyToPem(key).toString();
+        resolve(privateKeyPem);
+      }
+    });
+  }
+
+  signMessage(data, keyToSignWith) {
+    return new Promise(resolve => {
+      const hmac = window.forge.hmac.create();
+      const input = window.forge.util.createBuffer(data, 'utf8');
+      hmac.start('sha256', keyToSignWith);
+      hmac.update(input);
+      const signatureString = hmac.digest().getBytes();
+      resolve(signatureString);
+    });
+  }
+
+  verifyPayload(signature, data, secretKey) {
+    return new Promise(resolve => {
+      const hmac = window.forge.hmac.create();
+      let input = window.forge.util.createBuffer(data, 'utf8');
+      hmac.start('sha256', secretKey);
+      hmac.update(input);
+      const recreatedSignature = hmac.digest().getBytes();
+      const verified = recreatedSignature === signature;
+      resolve(verified);
+    });
+  }
+
+  wrapKeyWithForge(keyToWrap, publicKeyToWrapWith) {
+    return publicKeyToWrapWith.encrypt(keyToWrap, 'RSA-OAEP');
+  }
+
+  unwrapKey(privateKey, encryptedAESKey) {
+    return privateKey.decrypt(encryptedAESKey, 'RSA-OAEP');
+  }
+
+  _isPublicKeyString(key) {
+    return key.includes('PUBLIC KEY');
+  }
+
+  _isPublicKeyObject(key) {
+    return key['encrypt'] !== undefined;
   }
 }

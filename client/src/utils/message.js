@@ -5,59 +5,35 @@ const crypto = new Crypto();
 export const process = (payload, state) =>
   new Promise(async (resolve, reject) => {
     const privateKeyJson = state.user.privateKey;
-    const privateKey = await crypto.importEncryptDecryptKey(privateKeyJson, 'jwk', ['decrypt', 'unwrapKey']);
+    const privateKey = await crypto.importEncryptDecryptKey(privateKeyJson);
+    const signature = payload.signature;
+    const iv = payload.iv;
+    const payloadBuffer = payload.payload;
 
-    let sessionKey;
-    let signingKey;
-
-    const iv = await crypto.convertStringToArrayBufferView(payload.iv);
-    const signature = await crypto.convertStringToArrayBufferView(payload.signature);
-    const payloadBuffer = await crypto.convertStringToArrayBufferView(payload.payload);
+    let sessionAESKeyUnencrypted;
+    let signingHMACKey;
 
     await new Promise(resolvePayload => {
       payload.keys.forEach(async key => {
         try {
-          sessionKey = await crypto.unwrapKey(
-            'jwk',
-            key.sessionKey,
-            privateKey,
-            {
-              name: 'RSA-OAEP',
-              hash: { name: 'SHA-1' },
-            },
-            { name: 'AES-CBC' },
-            true,
-            ['decrypt'],
-          );
-
-          signingKey = await crypto.unwrapKey(
-            'jwk',
-            key.signingKey,
-            privateKey,
-            {
-              name: 'RSA-OAEP',
-              hash: { name: 'SHA-1' },
-            },
-            { name: 'HMAC', hash: { name: 'SHA-256' } },
-            true,
-            ['verify'],
-          );
+          sessionAESKeyUnencrypted = await crypto.unwrapKey(privateKey, key.sessionKey);
+          signingHMACKey = await crypto.unwrapKey(privateKey, key.signingKey);
           resolvePayload();
-        } catch (e) {} // eslint-disable-line
+        } catch (e) {}
       });
     });
 
-    const verified = await crypto.verifyPayload(signature, payloadBuffer, signingKey);
+    const verified = await crypto.verifyPayload(signature, payloadBuffer, signingHMACKey);
 
     if (!verified) {
+      console.error("recreated signature doesn't match with payload.signature");
       reject();
       return;
     }
 
-    const decryptedPayload = await crypto.decryptMessage(payloadBuffer, sessionKey, iv);
+    const decryptedPayload = await crypto.decryptMessage(payloadBuffer, sessionAESKeyUnencrypted, iv);
 
-    const payloadJson = JSON.parse(crypto.convertArrayBufferViewToString(new Uint8Array(decryptedPayload)));
-
+    const payloadJson = JSON.parse(decryptedPayload);
     resolve(payloadJson);
   });
 
@@ -65,11 +41,6 @@ export const prepare = (payload, state) =>
   new Promise(async resolve => {
     const myUsername = state.user.username;
     const myId = state.user.id;
-
-    const sessionKey = await crypto.createSecretKey();
-    const signingKey = await crypto.createSigningKey();
-    const iv = await crypto.crypto.getRandomValues(new Uint8Array(16));
-
     const jsonToSend = {
       ...payload,
       payload: {
@@ -79,18 +50,23 @@ export const prepare = (payload, state) =>
         text: encodeURI(payload.payload.text),
       },
     };
+    const payloadBuffer = JSON.stringify(jsonToSend);
 
-    const payloadBuffer = crypto.convertStringToArrayBufferView(JSON.stringify(jsonToSend));
+    const secretKeyRandomAES = window.forge.random.getBytesSync(16);
+    const iv = window.forge.random.getBytesSync(16);
+    const encryptedPayloadString = await crypto.encryptMessage(payloadBuffer, secretKeyRandomAES, iv);
 
-    const encryptedPayload = await crypto.encryptMessage(payloadBuffer, sessionKey, iv);
-    const payloadString = await crypto.convertArrayBufferViewToString(new Uint8Array(encryptedPayload));
-
-    const signature = await crypto.signMessage(encryptedPayload, signingKey);
+    const secretKeyRandomHMAC = window.forge.random.getBytesSync(32);
+    const signatureString = await crypto.signMessage(encryptedPayloadString, secretKeyRandomHMAC);
 
     const encryptedKeys = await Promise.all(
       state.room.members.map(async member => {
-        const key = await crypto.importEncryptDecryptKey(member.publicKey);
-        const enc = await Promise.all([crypto.wrapKey(sessionKey, key), crypto.wrapKey(signingKey, key)]);
+        const memberPublicKey = await crypto.importEncryptDecryptKey(member.publicKey);
+        const enc = await Promise.all([
+          crypto.wrapKeyWithForge(secretKeyRandomAES, memberPublicKey),
+          crypto.wrapKeyWithForge(secretKeyRandomHMAC, memberPublicKey),
+        ]);
+
         return {
           sessionKey: enc[0],
           signingKey: enc[1],
@@ -98,14 +74,11 @@ export const prepare = (payload, state) =>
       }),
     );
 
-    const ivString = await crypto.convertArrayBufferViewToString(new Uint8Array(iv));
-    const signatureString = await crypto.convertArrayBufferViewToString(new Uint8Array(signature));
-
     resolve({
       toSend: {
-        payload: payloadString,
+        payload: encryptedPayloadString,
         signature: signatureString,
-        iv: ivString,
+        iv: iv,
         keys: encryptedKeys,
       },
       original: jsonToSend,

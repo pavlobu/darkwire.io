@@ -235,7 +235,7 @@ Home.propTypes = {
   createUser: PropTypes.func.isRequired,
   activities: PropTypes.array.isRequired,
   username: PropTypes.string.isRequired,
-  publicKey: PropTypes.object.isRequired,
+  publicKey: PropTypes.string.isRequired,
   members: PropTypes.array.isRequired,
   match: PropTypes.object.isRequired,
   roomId: PropTypes.string.isRequired,

@@ -14,13 +14,13 @@ const initialState = {
 const room = (state = initialState, action) => {
   switch (action.type) {
     case 'USER_EXIT':
-      const memberPubKeys = action.payload.members.map(m => m.publicKey.n);
+      const memberPubKeys = action.payload.members.map(m => m.publicKey);
       return {
         ...state,
         members: state.members
-          .filter(member => memberPubKeys.includes(member.publicKey.n))
+          .filter(member => memberPubKeys.includes(member.publicKey))
           .map(member => {
-            const thisMember = action.payload.members.find(mem => mem.publicKey.n === member.id);
+            const thisMember = action.payload.members.find(mem => mem.publicKey === member.id);
             if (thisMember) {
               return {
                 ...member,
@@ -34,12 +34,12 @@ const room = (state = initialState, action) => {
       return {
         ...state,
         members: state.members.map(member => {
-          if (member.publicKey.n === action.payload.payload.publicKey.n) {
+          if (member.publicKey === action.payload.payload.publicKey) {
             return {
               ...member,
               username: action.payload.payload.username,
               isOwner: action.payload.payload.isOwner,
-              id: action.payload.payload.publicKey.n,
+              id: action.payload.payload.publicKey,
             };
           }
           return member;
@@ -53,19 +53,19 @@ const room = (state = initialState, action) => {
           {
             username: action.payload.username,
             publicKey: action.payload.publicKey,
-            id: action.payload.publicKey.n,
+            id: action.payload.publicKey,
           },
         ],
       };
     case 'USER_ENTER':
-      const members = _.uniqBy(action.payload.users, member => member.publicKey.n);
+      const members = _.uniqBy(action.payload.users, member => member.publicKey);
 
       return {
         ...state,
         id: action.payload.id,
         isLocked: Boolean(action.payload.isLocked),
         members: members.reduce((acc, user) => {
-          const exists = state.members.find(m => m.publicKey.n === user.publicKey.n);
+          const exists = state.members.find(m => m.publicKey === user.publicKey);
           if (exists) {
             return [
               ...acc,
