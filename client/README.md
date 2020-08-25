@@ -9,17 +9,17 @@ To serve client static files on simple `http` server, with NO need for `https` .
 ## Why using `forge` instead of `window.crypto.subtle` ?
 
 `window.crypto.subtle` is available only in secure context. What does that mean?
-It means you **forced** to run your website on https protocol with SSL certificate for your
-domain name in order to get use of `window.crypto.subtle` , otherwise it will be **undefined** and your
-client app will not work at all!
+It means you are **forced** to run your website through `https` protocol with SSL certificate for your
+domain name in order to get use of `window.crypto.subtle` , otherwise `window.crypto.subtle` will be **undefined** and your client app will not work at all!
 
 ## Motivation to use forge instead of `window.crypto.subtle`
-It helps you to improve anonymity if you run a darkwire.io server. 
+It helps you to **improve anonymity** if you run a darkwire.io server on the internet. 
 The person who runs a server having a client that uses *Forge* **doesn't need to buy a domain and doesn't need to register an SSL for a domain!**.
 We all know that in order to get ssl certificate you need to register your email and domain name to your name
-before you get ssl certificate even from letsencrypt.com .
+before you get ssl certificate even from letsencrypt.com and it may not suit for your needs.
 So if you want to deploy darkwire.io on your custom server with public ip but without an ssl certificate
-it will not work at all. And it will say you tat `window.crypto.subtle is undefined` in developer console.
+it will not work at all. And it will melt down with error `window.crypto.subtle is undefined` in developer console.
+That means client app will never run without https certificate, it will work only on localhost which may be not very useful.
 
 ## Solution if you don't want to use https ?
 Use forge library to generate secret keys instead of window.crypto.subtle!
