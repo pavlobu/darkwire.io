@@ -1,6 +1,6 @@
 # A fork of Darkwire.io that uses [Forge](https://github.com/digitalbazaar/forge)
 ## [Forge](https://github.com/digitalbazaar/forge) is a crypto library that allows you to run your darkwire.io server without need to configure https. No need to buy a domain and register an SSL certificate as well.
-## More details [here](https://github.com/pavlobu/darkwire.io/tree/master/client#what-is-forge-for-)
+## More details on darkwire.io useing forge [here](https://github.com/pavlobu/darkwire.io/tree/master/client#what-is-forge-for-)
 
 [![CircleCI](https://circleci.com/gh/darkwire/darkwire.io.svg?style=svg)](https://circleci.com/gh/darkwire/darkwire.io)
 
