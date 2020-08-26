@@ -4,8 +4,8 @@ const crypto = new Crypto();
 
 export const process = (payload, state) =>
   new Promise(async (resolve, reject) => {
-    const privateKeyJson = state.user.privateKey;
-    const privateKey = await crypto.importEncryptDecryptKey(privateKeyJson);
+    const privateKeyString = state.user.privateKey;
+    const privateKey = await crypto.importEncryptDecryptKey(privateKeyString);
     const signature = payload.signature;
     const iv = payload.iv;
     const payloadBuffer = payload.payload;
