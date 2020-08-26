@@ -107,8 +107,8 @@ export default class Crypto {
     return publicKeyToWrapWith.encrypt(keyToWrap, 'RSA-OAEP');
   }
 
-  unwrapKey(privateKey, encryptedAESKey) {
-    return privateKey.decrypt(encryptedAESKey, 'RSA-OAEP');
+  unwrapKey(privateKey, encryptedKey) {
+    return privateKey.decrypt(encryptedKey, 'RSA-OAEP');
   }
 
   _isPublicKeyString(key) {
