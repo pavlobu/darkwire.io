@@ -1,4 +1,4 @@
-# A fork of Darkwire.io that uses [Forge](https://github.com/digitalbazaar/forge)
+# A fork of Darkwire.io that uses [Forge](https://github.com/digitalbazaar/forge) [node-forge](https://www.npmjs.com/package/node-forge)
 ## [Forge](https://github.com/digitalbazaar/forge) is a crypto library that allows you to run your darkwire.io server without need to configure https. No need to buy a domain and register an SSL certificate as well.
 ## More details on darkwire.io using forge [here](https://github.com/pavlobu/darkwire.io/tree/master/client#what-is-forge-for-)
 

@@ -1,6 +1,8 @@
+import forge from 'node-forge';
+
 export default class Crypto {
   constructor() {
-    this._crypto = window.forge;
+    this._crypto = forge;
   }
 
   get crypto() {
@@ -34,8 +36,8 @@ export default class Crypto {
 
   encryptMessage(data, secretKey, iv) {
     return new Promise(resolve => {
-      const input = window.forge.util.createBuffer(data, 'utf8');
-      const cipherAES = window.forge.cipher.createCipher('AES-CBC', secretKey);
+      const input = this.crypto.util.createBuffer(data, 'utf8');
+      const cipherAES = this.crypto.cipher.createCipher('AES-CBC', secretKey);
       cipherAES.start({ iv: iv });
       cipherAES.update(input);
       cipherAES.finish();
@@ -46,8 +48,8 @@ export default class Crypto {
 
   decryptMessage(data, secretKey, iv) {
     return new Promise(resolve => {
-      const input = window.forge.util.createBuffer(data);
-      const decipher = window.forge.cipher.createDecipher('AES-CBC', secretKey);
+      const input = this.crypto.util.createBuffer(data);
+      const decipher = this.crypto.cipher.createDecipher('AES-CBC', secretKey);
       decipher.start({ iv: iv });
       decipher.update(input); // input should be a strng here
       decipher.finish();
@@ -82,8 +84,8 @@ export default class Crypto {
 
   signMessage(data, keyToSignWith) {
     return new Promise(resolve => {
-      const hmac = window.forge.hmac.create();
-      const input = window.forge.util.createBuffer(data, 'utf8');
+      const hmac = this.crypto.hmac.create();
+      const input = this.crypto.util.createBuffer(data, 'utf8');
       hmac.start('sha256', keyToSignWith);
       hmac.update(input);
       const signatureString = hmac.digest().getBytes();
@@ -93,8 +95,8 @@ export default class Crypto {
 
   verifyPayload(signature, data, secretKey) {
     return new Promise(resolve => {
-      const hmac = window.forge.hmac.create();
-      let input = window.forge.util.createBuffer(data, 'utf8');
+      const hmac = this.crypto.hmac.create();
+      let input = this.crypto.util.createBuffer(data, 'utf8');
       hmac.start('sha256', secretKey);
       hmac.update(input);
       const recreatedSignature = hmac.digest().getBytes();

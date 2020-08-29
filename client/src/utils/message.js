@@ -1,3 +1,4 @@
+import forge from 'node-forge';
 import Crypto from './crypto';
 
 const crypto = new Crypto();
@@ -52,11 +53,11 @@ export const prepare = (payload, state) =>
     };
     const payloadBuffer = JSON.stringify(jsonToSend);
 
-    const secretKeyRandomAES = window.forge.random.getBytesSync(16);
-    const iv = window.forge.random.getBytesSync(16);
+    const secretKeyRandomAES = forge.random.getBytesSync(16);
+    const iv = forge.random.getBytesSync(16);
     const encryptedPayloadString = await crypto.encryptMessage(payloadBuffer, secretKeyRandomAES, iv);
 
-    const secretKeyRandomHMAC = window.forge.random.getBytesSync(32);
+    const secretKeyRandomHMAC = forge.random.getBytesSync(32);
     const signatureString = await crypto.signMessage(encryptedPayloadString, secretKeyRandomHMAC);
 
     const encryptedKeys = await Promise.all(
